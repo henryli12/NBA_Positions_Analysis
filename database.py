@@ -17,7 +17,7 @@ class database:
                               host='127.0.0.1',
                               database=database,
                               auth_plugin='mysql_native_password')
-        self.cursor = self.db.cursor()
+        self.cursor = self.db.cursor(dictionary=True)
     
     def create_table(self, table):
         sql = (
@@ -25,25 +25,25 @@ class database:
         "`id` INT AUTO_INCREMENT PRIMARY KEY,"
         "`rank` INT,"
         "`player` VARCHAR(255),"
-        "`pos` VARCHAR(2),"
+        "`pos` VARCHAR(10),"
         "`age` INT,"
-        "`team_id` VARCHAR(3),"
+        "`team_id` VARCHAR(10),"
         "`g` INT,"
         "`gs` INT,"
         "`mp_per_g` DECIMAL(3,1),"
         "`fg_per_g` DECIMAL(3,1),"
         "`fga_per_g` DECIMAL(3,1),"
-        "`fg_pct` DECIMAL(3,3),"
+        "`fg_pct` DECIMAL(4,3),"
         "`fg3_per_g` DECIMAL(3,1),"
         "`fg3a_per_g` DECIMAL(3,1),"
-        "`fg3_pct` DECIMAL(3,3),"
+        "`fg3_pct` DECIMAL(4,3),"
         "`fg2_per_g` DECIMAL(3,1),"
         "`fg2a_per_g` DECIMAL(3,1),"
-        "`fg2_pct` DECIMAL(3,3),"
-        "`efg_pct` DECIMAL(3,3),"
+        "`fg2_pct` DECIMAL(4,3),"
+        "`efg_pct` DECIMAL(4,3),"
         "`ft_per_g` DECIMAL(3,1),"
         "`fta_per_g` DECIMAL(3,1),"
-        "`ft_pct` DECIMAL(3,1),"
+        "`ft_pct` DECIMAL(4,3),"
         "`orb_per_g` DECIMAL(3,1),"
         "`drb_per_g` DECIMAL(3,1),"
         "`trb_per_g` DECIMAL(3,1),"
@@ -80,13 +80,11 @@ class database:
                f"WHERE id = {id}")
         self.cursor.execute(sql)
 
-    def get_table(self, table):
-        sql = (f"SELECT * FROM {table}")
+    def select(self, table, *args):
+        to_select = "*" if len(args) == 0 else ", ".join(args)
+        sql = f"SELECT {to_select} FROM {table}"
         self.cursor.execute(sql)
-        result = []
-        for row in self.cursor:
-            result.append(row)
-        return result
+        return self.cursor.fetchall()
 
     def commit (self):
         self.db.commit()
@@ -94,15 +92,3 @@ class database:
     def close(self):
         self.cursor.close()
         self.db.close()
-
-if __name__ == "__main__":
-    db = database()
-    # p1 = all_players["3"]
-    # db.create_table('testing')
-    # db.insert("testing", p1)
-    # db.create("1")
-    # db.create_table("test")
-    # db.delete_by_id('testing', 1)
-    result = db.get_table('testing')
-    db.commit()
-    # db.close()
