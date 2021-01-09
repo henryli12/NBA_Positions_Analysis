@@ -5,7 +5,8 @@ Created on Thu Jan  7 20:41:41 2021
 @author: Henry
 """
 
-import mysql.connector as sql_db
+import pymysql
+from sqlalchemy import create_engine
 import os
 
 class database:
@@ -13,11 +14,10 @@ class database:
         user = os.environ.get('MYSQL_USER')
         database = os.environ.get('DATABASE')
         password = os.environ.get('MYSQL_PASSWORD')
-        self.db = sql_db.connect(user=user, password=password,
-                              host='127.0.0.1',
-                              database=database,
-                              auth_plugin='mysql_native_password')
-        self.cursor = self.db.cursor(dictionary=True)
+        self.db = pymysql.connect(user=user, password=password,
+                              host='localhost',
+                              db=database)
+        self.cursor = self.db.cursor(pymysql.cursors.DictCursor)
     
     def create_table(self, table):
         sql = (
@@ -73,6 +73,13 @@ class database:
                " %(drb_per_g)s, %(trb_per_g)s, %(ast_per_g)s, %(stl_per_g)s, %(blk_per_g)s,"
                " %(tov_per_g)s, %(pf_per_g)s, %(pts_per_g)s)")        
         self.cursor.execute(sql, item)
+
+    def insert_df(self, table, df):
+        user = os.environ.get('MYSQL_USER')
+        db = os.environ.get('DATABASE')
+        pw = os.environ.get('MYSQL_PASSWORD')
+        engine = create_engine(f"mysql+pymysql://{user}:{pw}@localhost/{db}")
+        df.to_sql(con=engine, name=table, if_exists='replace')
     
     def delete_by_id(self, table, id):
         sql = ("DELETE "
@@ -92,3 +99,9 @@ class database:
     def close(self):
         self.cursor.close()
         self.db.close()
+
+if __name__ == "__main__":
+    db = database()
+    db.select('players_stats_2021')
+    db.commit()
+    db.close()

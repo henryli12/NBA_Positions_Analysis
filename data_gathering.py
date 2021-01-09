@@ -52,6 +52,7 @@ def gather_data_by_year(year, db):
     # Commit to database
     db.commit()
     # Saves data to csv
+    # The csv files are purely for reference
     export_to_csv(all_stats, table)
     
 if __name__ == "__main__":
