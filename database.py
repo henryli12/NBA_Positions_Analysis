@@ -19,12 +19,13 @@ class database:
                               db=database)
         self.cursor = self.db.cursor(pymysql.cursors.DictCursor)
     
-    def create_table(self, table):
+    def create_stats_table(self, table):
         sql = (
         f"CREATE TABLE `{table}` ("
         "`id` INT AUTO_INCREMENT PRIMARY KEY,"
         "`rank` INT,"
         "`player` VARCHAR(255),"
+        "`year` INT,"
         "`pos` VARCHAR(10),"
         "`age` INT,"
         "`team_id` VARCHAR(10),"
@@ -56,23 +57,41 @@ class database:
         ") ENGINE=InnoDB")
         self.cursor.execute(sql)
     
+    def create_physical_table(self, table):
+        sql = (
+        f"CREATE TABLE `{table}` ("
+        "`id` INT AUTO_INCREMENT PRIMARY KEY,"
+        "`player` VARCHAR(255),"
+        "`team` VARCHAR(10),"
+        "`position` VARCHAR(10),"
+        "`weight` VARCHAR(20),"
+        "`height` VARCHAR(20)"
+        ") ENGINE=InnoDB")
+        self.cursor.execute(sql)
+    
     def drop_table(self, table):
         sql = f"DROP TABLE `{table}`"
         self.cursor.execute(sql)
     
-    def insert(self, table, item):
+    def insert_stat(self, table, stats):
         sql = (f"INSERT INTO `{table}` "
-               "(`rank`, `player`, `pos`, `age`, `team_id`, `g`, `gs`, `mp_per_g`, `fg_per_g`, `fga_per_g`,"
+               "(`rank`, `player`, `year`, `pos`, `age`, `team_id`, `g`, `gs`, `mp_per_g`, `fg_per_g`, `fga_per_g`,"
                " `fg_pct`, `fg3_per_g`, `fg3a_per_g`, `fg3_pct`, `fg2_per_g`, `fg2a_per_g`, `fg2_pct`,"
                " `efg_pct`, `ft_per_g`, `fta_per_g`, `ft_pct`, `orb_per_g`, `drb_per_g`, `trb_per_g`,"
                " `ast_per_g`, `stl_per_g`, `blk_per_g`, `tov_per_g`, `pf_per_g`, `pts_per_g`) "
-               "VALUES (%(rank)s, %(player)s, %(pos)s, %(age)s, %(team_id)s, %(g)s,"
+               "VALUES (%(rank)s, %(player)s, %(year)s, %(pos)s, %(age)s, %(team_id)s, %(g)s,"
                " %(gs)s, %(mp_per_g)s, %(fg_per_g)s, %(fga_per_g)s, %(fg_pct)s, %(fg3_per_g)s,"
                " %(fg3a_per_g)s, %(fg3_pct)s, %(fg2_per_g)s, %(fg2a_per_g)s, %(fg2_pct)s,"
                " %(efg_pct)s, %(ft_per_g)s, %(fta_per_g)s, %(ft_pct)s, %(orb_per_g)s,"
                " %(drb_per_g)s, %(trb_per_g)s, %(ast_per_g)s, %(stl_per_g)s, %(blk_per_g)s,"
                " %(tov_per_g)s, %(pf_per_g)s, %(pts_per_g)s)")        
-        self.cursor.execute(sql, item)
+        self.cursor.executemany(sql, stats)
+
+    def insert_physical(self, table, stats):
+        sql = (f"INSERT INTO `{table}` "
+               "(`player`, `team`, `position`, `height`, `weight`) "
+               "VALUES (%(player)s, %(team)s, %(position)s, %(height)s, %(weight)s)")
+        self.cursor.executemany(sql, stats)
 
     def insert_df(self, table, df):
         user = os.environ.get('MYSQL_USER')
@@ -80,6 +99,7 @@ class database:
         pw = os.environ.get('MYSQL_PASSWORD')
         engine = create_engine(f"mysql+pymysql://{user}:{pw}@localhost/{db}")
         df.to_sql(con=engine, name=table, if_exists='replace')
+        engine.dispose()
     
     def delete_by_id(self, table, id):
         sql = ("DELETE "
@@ -102,6 +122,5 @@ class database:
 
 if __name__ == "__main__":
     db = database()
-    db.select('players_stats_2021')
-    db.commit()
+    db.create_physical_table("testing")
     db.close()
