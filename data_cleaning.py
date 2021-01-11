@@ -5,6 +5,7 @@ Created on Fri Jan  8 19:33:40 2021
 @author: Henry
 """
 from database import database
+import numpy as np
 import pandas as pd
 
 def find_weight(row, df_physical):
@@ -43,6 +44,10 @@ def find_height(row, df_physical):
     else:
         return "Missing"
 
+def to_cm(height):
+    f, i = height.split("-")
+    return (float(f) * 12 + float(i)) * 2.54
+
 if __name__ == "__main__":
     db = database()
     try:
@@ -63,6 +68,9 @@ if __name__ == "__main__":
         drop_indices = df_ingame.loc[df_ingame['team_id'] == "TOT"].index
         df_ingame.drop(drop_indices, inplace=True)
         
+        # Convert data type from decimal to float
+        df_ingame.iloc[:, 8:] = df_ingame.iloc[:, 8:].astype(float)
+        
         # Combine ingame data and physical data
         df_combined = pd.merge(left=df_ingame, right=df_physical[['player', 'weight', 'height']], how='left', left_on='player', right_on='player')
         
@@ -72,11 +80,28 @@ if __name__ == "__main__":
         df_combined.loc[df_combined["weight"].isnull(), ["weight"]] = df_combined[df_combined["weight"].isnull()].apply(lambda row: find_weight(row, df_physical), axis=1)
         df_combined.loc[df_combined["height"].isnull(), ["height"]] = df_combined[df_combined["height"].isnull()].apply(lambda row: find_height(row, df_physical), axis=1)
 
+        # Remove lbs in weight and convert height to cm
+        df_combined["weight"] = df_combined["weight"].apply(lambda h: float(h.split(" ")[0]))
+        df_combined["height"] = df_combined["height"].apply(lambda w: to_cm(w))
         # Saving Cleaned data to database
         table = "player_all_stats_cleaned"
-        db.insert_df(table, df_combined)
-        # df_combined.to_csv("testing.csv")
-
+        db.insert_df(table, df_combined)        
+        
+        # Clean historic physical data        
+        #Remove rows with missing values
+        df_physical.replace('', np.nan, inplace=True)
+        df_physical = df_physical.dropna()
+        
+        # Remove lbs in weight and convert height to cm
+        df_physical["weight"] = df_physical["weight"].apply(lambda h: float(h.split(" ")[0]))
+        df_physical["height"] = df_physical["height"].apply(lambda w: to_cm(w))
+        
+        # Explode rows with two position into two seperate rows
+        df_physical = df_physical.assign(position=df_physical['position'].str.split('-')).explode('position')
+        
+        table = "player_historic_stats_cleaned"
+        db.insert_df(table, df_physical)
+        
     except Exception as err:
         print(err)
     db.close()
